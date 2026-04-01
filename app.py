@@ -2,13 +2,12 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 import os
-import pandas as pd  # <-- Adicionado o Pandas para gerar a tabela
+import pandas as pd
 
 # Configuração da página
 st.set_page_config(page_title="Extrator Kairós", layout="centered", page_icon="📄")
 
 def processar_pdf(arquivo_pdf):
-    # Abrir o PDF a partir do stream de bytes enviado pelo Streamlit
     doc = fitz.open(stream=arquivo_pdf.read(), filetype="pdf")
     
     padrao_hora = re.compile(r'^(\d{1,2})[h:](\d{2})$')
@@ -21,10 +20,8 @@ def processar_pdf(arquivo_pdf):
         for bloco in blocos:
             if "lines" in bloco:
                 for linha in bloco["lines"]:
-                    # Consolida o texto da linha para busca de padrões
                     texto_linha = " ".join([span["text"].strip() for span in linha["spans"]]).lower()
                     
-                    # Busca por indicação de semana
                     match_sem = padrao_semana.search(texto_linha)
                     if match_sem:
                         y_centro_linha = (linha["bbox"][1] + linha["bbox"][3]) / 2
@@ -36,7 +33,6 @@ def processar_pdf(arquivo_pdf):
                             'x': 0
                         })
                     
-                    # Busca por horários dentro dos spans da linha
                     for span in linha["spans"]:
                         texto = span["text"].strip().lower()
                         match_hora = padrao_hora.match(texto)
@@ -51,10 +47,33 @@ def processar_pdf(arquivo_pdf):
                             })
     return eventos
 
+def agrupar_por_semana(eventos):
+    """
+    Usa as coordenadas para ler o PDF de cima para baixo e 
+    associar os horários extraídos às suas respectivas semanas.
+    """
+    # Ordena os eventos por página e depois pela posição vertical (y)
+    eventos_ordenados = sorted(eventos, key=lambda e: (e['page'], e['y']))
+    
+    dados_processados = []
+    semana_atual = None
+    
+    for evento in eventos_ordenados:
+        if evento['tipo'] == 'semana':
+            semana_atual = f"Semana {evento['valor']}"
+        elif evento['tipo'] == 'horario' and semana_atual is not None:
+            dados_processados.append({
+                'Período': semana_atual,
+                'Horários Registrados': evento['valor']
+                # Se você extraía um texto específico escrito "Saldo", 
+                # a lógica de captura dele entraria aqui.
+            })
+            
+    return pd.DataFrame(dados_processados)
+
 # --- INTERFACE DO USUÁRIO ---
 st.title("Sistema de Extração Kairós 📄")
 
-# Seção de orientações para o usuário
 with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", expanded=True):
     st.markdown("""
     Para que o sistema processe seus dados, siga exatamente estes passos no portal Kairós:
@@ -73,39 +92,33 @@ with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", exp
         * **Opções:** Marque obrigatoriamente a caixa **"Apenas seleção"**
     """)
     
-    # --- AJUSTE DE TAMANHO DA IMAGEM ---
     nome_imagem = "guia.png" 
     
     if os.path.exists(nome_imagem):
-        st.write("---") # Linha divisória
-        
+        st.write("---") 
         col_esq, col_img, col_dir = st.columns([1, 2, 1])
-        
         with col_img:
-            st.image(
-                nome_imagem, 
-                caption="Exemplo visual das configurações corretas.",
-                use_container_width=True 
-            )
+            st.image(nome_imagem, caption="Exemplo visual das configurações corretas.", use_container_width=True)
     else:
         st.warning(f"Aviso para o desenvolvedor: A imagem '{nome_imagem}' não foi encontrada.")
 
 st.divider()
 
-# Upload do arquivo
 arquivo_upload = st.file_uploader("Faça o upload do seu espelho de ponto gerado em PDF", type=["pdf"])
 
 if arquivo_upload is not None:
     with st.spinner("Processando dados..."):
         try:
-            resultados = processar_pdf(arquivo_upload)
+            resultados_brutos = processar_pdf(arquivo_upload)
             
-            if resultados:
-                st.success(f"Sucesso! Foram encontrados {len(resultados)} registros.")
+            if resultados_brutos:
+                # Transforma a lista bruta na tabela agrupada
+                df_final = agrupar_por_semana(resultados_brutos)
                 
-                # --- CORREÇÃO: Exibindo os dados como uma tabela interativa ---
-                df_resultados = pd.DataFrame(resultados)
-                st.dataframe(df_resultados, use_container_width=True, hide_index=True)
+                st.success("Dados processados com sucesso!")
+                
+                # Exibe a tabela limpa para o cliente
+                st.dataframe(df_final, use_container_width=True, hide_index=True)
                 
             else:
                 st.warning("Nenhum dado foi encontrado. Certifique-se de que seguiu as instruções de escala (30%) e marcou 'Apenas Seleção'.")
