@@ -73,7 +73,7 @@ with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", exp
     """)
     
     # --- AJUSTE DE TAMANHO DA IMAGEM ---
-    nome_imagem = "guia_impressao.png" 
+    nome_imagem = "guia.png" 
     
     if os.path.exists(nome_imagem):
         st.write("---") # Linha divisória
