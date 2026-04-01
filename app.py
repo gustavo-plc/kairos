@@ -119,7 +119,7 @@ with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", exp
     """)
     
     # Inserção da imagem de guia
-    nome_imagem = "guia_impressao.png" 
+    nome_imagem = "guia.png" 
     
     if os.path.exists(nome_imagem):
         st.write("---") 
