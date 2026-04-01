@@ -72,20 +72,27 @@ with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", exp
         * **Opções:** Marque obrigatoriamente a caixa **"Apenas seleção"**
     """)
     
-    # --- NOVO: INSERÇÃO DA IMAGEM ---
-    # Defina aqui o nome do arquivo que você salvou na pasta
-    nome_imagem = "guia.png" 
+    # --- AJUSTE DE TAMANHO DA IMAGEM ---
+    nome_imagem = "guia_impressao.png" 
     
-    # Verifica se a imagem existe na pasta para não dar erro se você esquecer de colocá-la
     if os.path.exists(nome_imagem):
-        st.write("---") # Adiciona uma linha divisória sutil
-        st.image(
-            nome_imagem, 
-            caption="Exemplo visual das configurações corretas na tela de impressão.",
-            use_container_width=True # Faz a imagem se ajustar à largura da tela
-        )
+        st.write("---") # Linha divisória
+        
+        # 1. Criamos três colunas. 
+        # A proporção [1, 2, 1] significa que a coluna do meio (imagem) 
+        # ocupa 50% da largura total (2 partes de 4).
+        # As colunas laterais ocupam 25% cada uma, servindo de margem.
+        col_esq, col_img, col_dir = st.columns([1, 2, 1])
+        
+        # 2. Colocamos a imagem APENAS na coluna do meio
+        with col_img:
+            st.image(
+                nome_imagem, 
+                caption="Exemplo visual das configurações corretas.",
+                use_container_width=True # Agora ele preenche 100% apenas da coluna central (50% do total)
+            )
     else:
-        st.warning(f"Aviso para o desenvolvedor: A imagem '{nome_imagem}' não foi encontrada na pasta do projeto.")
+        st.warning(f"Aviso para o desenvolvedor: A imagem '{nome_imagem}' não foi encontrada.")
     # ---------------------------------
 
 st.divider()
@@ -100,7 +107,6 @@ if arquivo_upload is not None:
             
             if resultados:
                 st.success(f"Sucesso! Foram encontrados {len(resultados)} registros.")
-                # Exibe os dados brutos encontrados (você pode melhorar isso depois)
                 st.write(resultados)
             else:
                 st.warning("Nenhum dado foi encontrado. Certifique-se de que seguiu as instruções de escala (30%) e marcou 'Apenas Seleção'.")
