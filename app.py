@@ -1,7 +1,8 @@
 import streamlit as st
 import fitz  # PyMuPDF
 import re
-import os # Importado para verificar se a imagem existe
+import os
+import pandas as pd  # <-- Adicionado o Pandas para gerar a tabela
 
 # Configuração da página
 st.set_page_config(page_title="Extrator Kairós", layout="centered", page_icon="📄")
@@ -78,22 +79,16 @@ with st.expander("📖 Clique aqui para ver como emitir o PDF corretamente", exp
     if os.path.exists(nome_imagem):
         st.write("---") # Linha divisória
         
-        # 1. Criamos três colunas. 
-        # A proporção [1, 2, 1] significa que a coluna do meio (imagem) 
-        # ocupa 50% da largura total (2 partes de 4).
-        # As colunas laterais ocupam 25% cada uma, servindo de margem.
         col_esq, col_img, col_dir = st.columns([1, 2, 1])
         
-        # 2. Colocamos a imagem APENAS na coluna do meio
         with col_img:
             st.image(
                 nome_imagem, 
                 caption="Exemplo visual das configurações corretas.",
-                use_container_width=True # Agora ele preenche 100% apenas da coluna central (50% do total)
+                use_container_width=True 
             )
     else:
         st.warning(f"Aviso para o desenvolvedor: A imagem '{nome_imagem}' não foi encontrada.")
-    # ---------------------------------
 
 st.divider()
 
@@ -107,7 +102,11 @@ if arquivo_upload is not None:
             
             if resultados:
                 st.success(f"Sucesso! Foram encontrados {len(resultados)} registros.")
-                st.write(resultados)
+                
+                # --- CORREÇÃO: Exibindo os dados como uma tabela interativa ---
+                df_resultados = pd.DataFrame(resultados)
+                st.dataframe(df_resultados, use_container_width=True, hide_index=True)
+                
             else:
                 st.warning("Nenhum dado foi encontrado. Certifique-se de que seguiu as instruções de escala (30%) e marcou 'Apenas Seleção'.")
         
